@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0c1118" />
+  <meta name="description" content="路迹 RoadTrace：记录每一段真实驶过的路，并回看路线与道路实景。" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23ff6948'/%3E%3Cpath d='M17 44c7-8 8-18 16-24 7-5 9 3 14 0' fill='none' stroke='%230c1118' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='17' cy='44' r='4' fill='%230c1118'/%3E%3Ccircle cx='47' cy='20' r='4' fill='%230c1118'/%3E%3C/svg%3E" />
+  <title>路迹 RoadTrace</title>
+  <style>
+    :root {
+      --bg: #0b1016;
+      --panel: #111820;
+      --panel-2: #151f29;
+      --panel-3: #1a2631;
+      --line: #283440;
+      --muted: #81909e;
+      --text: #edf3f4;
+      --subtle: #b3c0c5;
+      --coral: #ff6b4a;
+      --coral-soft: #ffb59e;
+      --lime: #c5e86c;
+      --cyan: #7ce4db;
+      --yellow: #ffd26a;
+      --shadow: 0 20px 70px rgba(0,0,0,.24);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    body { min-width: 320px; }
+    button { font: inherit; color: inherit; }
+    button:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+    .app-shell { min-height: 100vh; display: grid; grid-template-columns: 246px minmax(0, 1fr); }
+    .sidebar { border-right: 1px solid var(--line); background: #0d131a; padding: 25px 18px; display: flex; flex-direction: column; gap: 28px; }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 9px; }
+    .brand-mark { width: 33px; height: 33px; border-radius: 11px; background: var(--coral); display: grid; place-items: center; color: var(--bg); box-shadow: 0 7px 20px rgba(255, 107, 74, .18); }
+    .brand-mark svg { width: 21px; height: 21px; }
+    .brand-name { font-weight: 760; letter-spacing: -.02em; font-size: 18px; }
+    .brand-name span { color: var(--muted); font-weight: 500; font-size: 11px; letter-spacing: .08em; margin-left: 5px; }
+    .nav-label { color: #566572; text-transform: uppercase; letter-spacing: .12em; font-size: 11px; padding: 0 11px 7px; }
+    .nav { display: grid; gap: 4px; }
+    .nav button { border: 0; background: transparent; color: var(--muted); text-align: left; width: 100%; padding: 12px 12px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 14px; transition: .2s ease; }
+    .nav button:hover { background: var(--panel); color: var(--text); }
+    .nav button.active { color: var(--text); background: #1b2731; box-shadow: inset 3px 0 var(--coral); }
+    .nav-icon { width: 19px; height: 19px; display: inline-grid; place-items: center; font-size: 17px; opacity: .85; }
+    .sidebar-bottom { margin-top: auto; display: grid; gap: 14px; }
+    .mini-card { border: 1px solid var(--line); border-radius: 14px; padding: 15px; background: linear-gradient(140deg, #151f28, #0e151c); }
+    .mini-card .eyebrow { color: var(--lime); }
+    .mini-card p { margin: 8px 0 13px; color: var(--subtle); line-height: 1.5; font-size: 13px; }
+    .mini-card button { width: 100%; border: 1px solid #475762; background: transparent; padding: 9px 10px; border-radius: 9px; cursor: pointer; font-size: 12px; }
+    .profile { border-top: 1px solid var(--line); padding: 15px 8px 0; display: flex; align-items: center; gap: 10px; }
+    .avatar { width: 31px; height: 31px; border-radius: 50%; background: #d9ee92; color: #26311d; display: grid; place-items: center; font-weight: 800; font-size: 12px; }
+    .profile strong { display: block; font-size: 13px; }
+    .profile small { color: var(--muted); font-size: 11px; }
+    .main { min-width: 0; padding: 26px 29px 34px; }
+    .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 22px; }
+    .topbar h1 { margin: 0; font-size: clamp(24px, 3vw, 32px); letter-spacing: -.045em; line-height: 1.1; }
+    .topbar p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .icon-btn, .soft-btn { border: 1px solid var(--line); background: var(--panel); height: 39px; border-radius: 10px; cursor: pointer; color: var(--subtle); }
+    .icon-btn { width: 39px; display: grid; place-items: center; font-size: 16px; }
+    .soft-btn { padding: 0 14px; font-size: 13px; }
+    .icon-btn:hover, .soft-btn:hover { border-color: #546773; color: var(--text); }
+    .primary-btn { border: 0; background: var(--coral); color: #1d1715; font-weight: 750; padding: 0 15px; height: 39px; border-radius: 10px; cursor: pointer; box-shadow: 0 8px 23px rgba(255, 107, 74, .16); }
+    .primary-btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
+    .primary-btn.recording { background: var(--lime); }
+    .dashboard { display: grid; grid-template-columns: minmax(460px, 1fr) 320px; gap: 18px; align-items: start; }
+    .map-card { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: #0f161c; min-height: 642px; box-shadow: var(--shadow); }
+    .map-toolbar { height: 62px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: rgba(17,24,32,.92); }
+    .map-tabs { display: flex; gap: 3px; background: #0b1116; border-radius: 9px; padding: 3px; }
+    .map-tabs button { border: 0; border-radius: 7px; padding: 8px 12px; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; }
+    .map-tabs button.active { background: var(--panel-3); color: var(--text); }
+    .toolbar-actions { display: flex; gap: 6px; }
+    .toolbar-actions button { border: 1px solid var(--line); background: var(--panel); color: var(--subtle); width: 33px; height: 33px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+    .toolbar-actions button:hover { color: var(--lime); border-color: #516572; }
+    .map-stage { position: relative; min-height: 579px; overflow: hidden; background: #19292c; }
+    .map-stage::before { content: ""; position: absolute; inset: 0; opacity: .65; background-image: linear-gradient(rgba(128, 168, 144, .055) 1px, transparent 1px), linear-gradient(90deg, rgba(128, 168, 144, .055) 1px, transparent 1px); background-size: 46px 46px; pointer-events: none; }
+    .map-stage::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 45% 45%, transparent 0 31%, rgba(5, 10, 13, .15) 78%), linear-gradient(120deg, rgba(20, 51, 45, .5), rgba(36, 47, 51, .2)); pointer-events: none; }
+    .contours { position: absolute; inset: -15% -8%; width: 116%; height: 130%; opacity: .75; }
+    .contours path { fill: none; stroke: #4d766b; stroke-width: 1.1; opacity: .47; }
+    .contours path:nth-child(2n) { stroke: #718878; opacity: .25; }
+    .road-lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .road-lines .minor { fill: none; stroke: #687d78; stroke-width: 1.2; opacity: .5; }
+    .road-lines .major { fill: none; stroke: #9a9d87; stroke-width: 3.2; opacity: .55; }
+    .route-under { fill: none; stroke: rgba(15, 24, 26, .8); stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; }
+    .route { fill: none; stroke: var(--coral); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 7px rgba(255,107,74,.3)); }
+    .route-done { fill: none; stroke: var(--lime); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 680; stroke-dashoffset: 0; }
+    .map-label { position: absolute; color: #b5c7bd; font-size: 11px; letter-spacing: .04em; background: rgba(12, 20, 22, .55); border: 1px solid rgba(170, 199, 177, .12); border-radius: 6px; padding: 4px 7px; backdrop-filter: blur(5px); }
+    .label-a { left: 18%; top: 23%; } .label-b { left: 63%; top: 37%; } .label-c { left: 71%; top: 69%; } .label-d { left: 26%; top: 72%; }
+    .route-marker { position: absolute; width: 29px; height: 29px; border-radius: 50%; border: 2px solid #f4fbef; background: var(--coral); display: grid; place-items: center; color: #251815; font-size: 11px; font-weight: 800; box-shadow: 0 0 0 6px rgba(255,107,74,.14), 0 6px 17px rgba(0,0,0,.35); z-index: 4; }
+    .start { left: 13%; top: 75%; } .peak { left: 56%; top: 30%; } .end { left: 78%; top: 16%; background: var(--lime); box-shadow: 0 0 0 6px rgba(197,232,108,.13), 0 6px 17px rgba(0,0,0,.35); }
+    .route-marker span { position: absolute; left: 35px; white-space: nowrap; color: var(--text); font-weight: 600; font-size: 12px; text-shadow: 0 2px 9px #000; }
+    .start span { top: 6px; } .peak span { top: 6px; } .end span { top: 6px; }
+    .map-caption { position: absolute; left: 17px; bottom: 16px; z-index: 6; border: 1px solid rgba(255,255,255,.14); background: rgba(11, 16, 22, .75); border-radius: 11px; padding: 10px 12px; display: flex; align-items: center; gap: 9px; backdrop-filter: blur(8px); }
+    .map-caption strong { font-size: 12px; } .map-caption small { color: var(--muted); font-size: 11px; display: block; margin-top: 2px; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 0 4px rgba(197,232,108,.12); }
+    .zoom-stack { position: absolute; right: 17px; bottom: 16px; z-index: 6; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,.15); }
+    .zoom-stack button { display: block; width: 33px; height: 31px; border: 0; border-bottom: 1px solid var(--line); background: rgba(13, 21, 27, .78); color: #d4dfd6; cursor: pointer; }
+    .zoom-stack button:last-child { border-bottom: 0; }
+    .zoom-stack button:hover { background: var(--panel-3); color: var(--lime); }
+    .road-view { display: none; position: absolute; inset: 0; background: #172022; }
+    .road-view.visible { display: block; }
+    .road-image { position: absolute; inset: 0; background-image: linear-gradient(180deg, rgba(10,18,22,.08), rgba(10,18,22,.58)), url("https://images.unsplash.com/photo-1723375377779-4ac95876f822?auto=format&fit=crop&fm=jpg&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDZ8fHxlbnwwfHx8fHw%3D&ixlib=rb-4.1.0&q=60&w=3000"); background-size: cover; background-position: center; filter: saturate(.78) contrast(1.04); }
+    .road-overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5,11,14,.78), transparent 40%, transparent 70%, rgba(5,11,14,.32)); }
+    .road-info { position: absolute; left: 21px; top: 22px; z-index: 4; max-width: 265px; }
+    .road-info .eyebrow { color: var(--lime); }
+    .road-info h2 { margin: 8px 0 8px; font-size: 23px; letter-spacing: -.04em; }
+    .road-info p { color: #e0e8e1; font-size: 12px; line-height: 1.55; margin: 0; }
+    .road-controls { position: absolute; left: 21px; right: 21px; bottom: 21px; z-index: 4; display: flex; align-items: center; gap: 12px; }
+    .play-btn { width: 43px; height: 43px; border-radius: 50%; border: 0; background: var(--coral); color: #211613; cursor: pointer; font-size: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.3); }
+    .progress { flex: 1; height: 4px; border-radius: 5px; background: rgba(255,255,255,.3); position: relative; overflow: hidden; }
+    .progress i { position: absolute; left: 0; top: 0; bottom: 0; width: 42%; background: var(--lime); }
+    .time-code { font-variant-numeric: tabular-nums; font-size: 11px; color: #f3f6ec; }
+    .side-column { display: grid; gap: 16px; }
+    .panel { border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); padding: 18px; }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
+    .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .13em; color: var(--muted); }
+    .panel h2 { font-size: 18px; letter-spacing: -.035em; margin: 8px 0 4px; }
+    .panel .muted { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .status-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #324a42; background: #162a25; color: var(--lime); font-size: 11px; padding: 6px 8px; border-radius: 7px; white-space: nowrap; }
+    .status-chip .live-dot { width: 6px; height: 6px; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-top: 18px; }
+    .stat { background: var(--panel-2); padding: 12px; }
+    .stat small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 7px; }
+    .stat strong { font-size: 20px; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+    .stat span { font-size: 11px; color: var(--muted); margin-left: 3px; }
+    .elevation { height: 88px; width: 100%; margin-top: 14px; }
+    .elevation .fill { fill: rgba(197,232,108,.14); }
+    .elevation .line { fill: none; stroke: var(--lime); stroke-width: 2.2; }
+    .elevation .axis { stroke: #33414a; stroke-width: 1; }
+    .elevation-labels { display: flex; justify-content: space-between; color: #65737c; font-size: 10px; margin-top: -2px; }
+    .section-title { margin: 2px 0 12px; display: flex; align-items: center; justify-content: space-between; }
+    .section-title strong { font-size: 13px; }
+    .section-title button { border: 0; background: transparent; color: var(--coral-soft); font-size: 11px; cursor: pointer; }
+    .road-stat { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--line); }
+    .road-stat:last-child { border-bottom: 0; padding-bottom: 1px; }
+    .road-stat label { color: var(--muted); font-size: 12px; }
+    .road-stat b { font-size: 12px; color: var(--subtle); }
+    .road-stat b.good { color: var(--lime); }
+    .road-stat b.warn { color: var(--yellow); }
+    .timeline { display: grid; gap: 0; }
+    .timeline-item { display: grid; grid-template-columns: 18px 1fr; gap: 11px; min-height: 57px; position: relative; }
+    .timeline-item::before { content: ""; position: absolute; left: 7px; top: 17px; bottom: -8px; width: 1px; background: #35424a; }
+    .timeline-item:last-child::before { display: none; }
+    .timeline-dot { width: 15px; height: 15px; border-radius: 50%; border: 3px solid var(--panel); background: var(--coral); box-shadow: 0 0 0 1px var(--coral); z-index: 1; margin-top: 2px; }
+    .timeline-dot.green { background: var(--lime); box-shadow: 0 0 0 1px var(--lime); }
+    .timeline-item strong { display: block; font-size: 12px; margin-bottom: 4px; }
+    .timeline-item small { color: var(--muted); font-size: 11px; }
+    .route-list { display: grid; gap: 9px; }
+    .route-row { display: flex; gap: 11px; align-items: center; padding: 10px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; }
+    .route-row:hover, .route-row.selected { border-color: #33454f; background: var(--panel-2); }
+    .route-thumb { width: 42px; height: 42px; border-radius: 9px; background: linear-gradient(145deg,#6c827d,#273b3d); position: relative; overflow: hidden; }
+    .route-thumb::after { content: ""; position: absolute; width: 58px; height: 11px; left: -6px; top: 21px; transform: rotate(-28deg); background: var(--coral); opacity: .8; }
+    .route-row strong { display: block; font-size: 12px; }
+    .route-row small { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
+    .route-row .arrow { margin-left: auto; color: #64737d; }
+    .empty-state { display: none; position: absolute; inset: 0; z-index: 10; background: rgba(10, 15, 20, .9); place-items: center; text-align: center; padding: 30px; }
+    .empty-state.show { display: grid; }
+    .empty-state > div { max-width: 280px; }
+    .empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; }
+    .empty-state h3 { margin: 0 0 8px; font-size: 18px; }
+    .empty-state p { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; border: 1px solid #3c5257; background: #17242a; color: var(--text); border-radius: 10px; padding: 11px 14px; box-shadow: var(--shadow); font-size: 13px; transition: .25s ease; z-index: 30; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .recording-pulse { animation: pulse 1.7s infinite; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(197,232,108,.35); } 50% { box-shadow: 0 0 0 7px rgba(197,232,108,0); } }
+    @media (max-width: 1120px) { .app-shell { grid-template-columns: 78px minmax(0,1fr); } .sidebar { padding: 20px 12px; } .brand { padding: 0; justify-content: center; } .brand-name, .nav-label, .nav button span:not(.nav-icon), .mini-card, .profile > div { display: none; } .nav button { justify-content: center; padding: 12px 0; } .profile { justify-content: center; padding-left: 0; padding-right: 0; } .dashboard { grid-template-columns: minmax(430px,1fr) 290px; } .main { padding: 24px 20px 30px; } }
+    @media (max-width: 820px) { .dashboard { grid-template-columns: 1fr; } .map-card { min-height: 560px; } .map-stage { min-height: 497px; } .side-column { grid-template-columns: 1fr 1fr; } .side-column .panel:first-child { grid-column: 1 / -1; } }
+    @media (max-width: 590px) { .app-shell { display: block; } .sidebar { position: sticky; z-index: 20; top: 0; height: 62px; border-right: 0; border-bottom: 1px solid var(--line); padding: 0 14px; flex-direction: row; align-items: center; } .brand { margin-right: 8px; } .nav { display: flex; gap: 2px; flex: 1; justify-content: flex-end; } .nav button { width: 40px; } .nav button.active { box-shadow: inset 0 -3px var(--coral); } .profile, .sidebar-bottom { display: none; } .main { padding: 22px 13px 26px; } .topbar { align-items: center; } .topbar p { display: none; } .top-actions .soft-btn { display: none; } .dashboard { gap: 13px; } .map-card { min-height: 500px; border-radius: 14px; } .map-stage { min-height: 437px; } .side-column { display: grid; grid-template-columns: 1fr; } .side-column .panel:first-child { grid-column: auto; } .route-marker span { display: none; } .map-label { font-size: 10px; } .map-toolbar { padding: 0 10px; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 17.8c2.8-3.2 3.1-7.2 6.4-9.5 3.2-2.2 4.2 1.3 7.2-.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="5" cy="17.8" r="1.5" fill="currentColor"/><circle cx="19" cy="7.9" r="1.5" fill="currentColor"/></svg>
+        </div>
+        <div class="brand-name">路迹 <span>ROADTRACE</span></div>
+      </div>
+      <div>
+        <div class="nav-label">我的旅程</div>
+        <nav class="nav">
+          <button class="active" data-page="overview"><span class="nav-icon">⌁</span><span>旅程总览</span></button>
+          <button data-page="record"><span class="nav-icon">◉</span><span>正在记录</span></button>
+          <button data-page="routes"><span class="nav-icon">↝</span><span>路线库</span></button>
+        </nav>
+      </div>
+      <div>
+        <div class="nav-label">空间</div>
+        <nav class="nav">
+          <button data-page="moments"><span class="nav-icon">▧</span><span>旅途片段</span></button>
+          <button data-page="settings"><span class="nav-icon">⚙</span><span>设置</span></button>
+        </nav>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="mini-card">
+          <div class="eyebrow">本周驾驶</div>
+          <p>你已经留下了 3 段真实道路。</p>
+          <button data-toast="本周驾驶报告已准备好">查看报告 →</button>
+        </div>
+        <div class="profile"><div class="avatar">T</div><div><strong>唐先生</strong><small>探索者计划</small></div></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1>旅程总览</h1>
+          <p>把走过的路，留成以后还想再看的风景。</p>
+        </div>
+        <div class="top-actions">
+          <button class="soft-btn" data-toast="导入 GPX / KML 功能即将开放">＋ 导入轨迹</button>
+          <button class="icon-btn" aria-label="通知" data-toast="目前没有新的提醒">♢</button>
+          <button class="primary-btn" id="recordBtn">开始记录</button>
+        </div>
+      </header>
+
+      <section class="dashboard" aria-label="旅程工作台">
+        <section class="map-card" aria-label="路线地图">
+          <div class="map-toolbar">
+            <div class="map-tabs" role="tablist" aria-label="地图视图">
+              <button class="active" id="mapTab" role="tab" aria-selected="true">路线地图</button>
+              <button id="roadTab" role="tab" aria-selected="false">道路实景</button>
+            </div>
+            <div class="toolbar-actions">
+              <button aria-label="切换地图图层" data-toast="已切换至地形图层">◈</button>
+              <button aria-label="分享路线" data-toast="分享卡片已生成">↗</button>
+              <button aria-label="更多操作" data-toast="更多路线工具即将开放">•••</button>
+            </div>
+          </div>
+          <div class="map-stage" id="mapStage">
+            <svg class="contours" viewBox="0 0 1000 720" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M-60 110 C100 12 220 180 368 93 S590 5 745 105 935 130 1080 25"/><path d="M-60 138 C96 36 219 207 366 119 S588 31 747 132 930 158 1080 53"/><path d="M-60 168 C96 66 220 237 368 149 S592 62 750 162 931 187 1080 82"/>
+              <path d="M-70 312 C58 194 188 382 326 288 S534 193 672 287 893 338 1080 202"/><path d="M-70 344 C55 225 191 414 329 319 S538 225 675 318 895 370 1080 234"/><path d="M-70 377 C58 255 193 447 331 351 S541 257 678 351 898 403 1080 268"/>
+              <path d="M-80 531 C85 424 180 592 348 491 S570 413 743 497 920 554 1080 440"/><path d="M-80 563 C87 457 181 625 350 524 S572 446 745 530 922 586 1080 473"/><path d="M-80 596 C87 489 182 659 351 557 S574 479 747 563 924 619 1080 505"/>
+            </svg>
+            <svg class="road-lines" viewBox="0 0 1000 720" preserveAspectRatio="none" aria-hidden="true">
+              <path class="minor" d="M0 195 C180 215 250 80 430 155 S720 210 1000 105"/><path class="minor" d="M0 485 C180 410 237 550 405 489 S720 398 1000 525"/><path class="minor" d="M670 0 C625 130 770 180 745 330 S820 610 780 720"/>
+              <path class="major" d="M0 690 C125 640 180 540 270 510 S405 468 485 360 535 245 675 211 817 180 1000 20"/><path class="major" d="M0 90 C142 160 220 270 346 248 S567 189 730 312 845 420 1000 405"/>
+            </svg>
+            <svg class="route-lines" viewBox="0 0 1000 720" preserveAspectRatio="none" aria-hidden="true">
+              <path class="route-under" d="M128 593 C211 566 266 509 326 478 S363 385 435 359 503 331 558 269 656 225 781 117"/>
+              <path class="route" d="M128 593 C211 566 266 509 326 478 S363 385 435 359 503 331 558 269 656 225 781 117"/>
+              <path id="routeDone" class="route-done" d="M128 593 C211 566 266 509 326 478 S363 385 435 359 503 331 558 269 656 225 781 117"/>
+            </svg>
+            <div class="map-label label-a">折多山口</div><div class="map-label label-b">新都桥</div><div class="map-label label-c">塔公草原</div><div class="map-label label-d">康定</div>
+            <div class="route-marker start"><span>康定 · 起点</span>A</div>
+            <div class="route-marker peak"><span>折多山口 · 4298m</span>↟</div>
+            <div class="route-marker end"><span>塔公草原 · 终点</span>B</div>
+            <div class="map-caption"><i class="live-dot"></i><div><strong id="mapCaptionTitle">路线已完整记录</strong><small id="mapCaptionSub">川西环线 · 2026 年 09 月 06 日</small></div></div>
+            <div class="zoom-stack"><button aria-label="放大" data-toast="地图已放大">＋</button><button aria-label="缩小" data-toast="地图已缩小">−</button></div>
+            <div class="road-view" id="roadView">
+              <div class="road-image"></div><div class="road-overlay"></div>
+              <div class="road-info"><div class="eyebrow">道路实景 · 07 / 18</div><h2>折多山下坡段</h2><p>连续弯道，路面完整；前方 1.8 km 有观景停车点。影像来自本次行程的行车记录仪。</p></div>
+              <div class="road-controls"><button class="play-btn" id="playBtn" aria-label="播放实景">▶</button><div class="progress"><i id="videoProgress"></i></div><span class="time-code" id="timeCode">02:18 / 05:42</span></div>
+            </div>
+            <div class="empty-state" id="emptyState"><div><div class="empty-icon">⌁</div><h3>准备记录一段新的路</h3><p>点击右上角“开始记录”，路迹会在后台保存你的路线、速度和旅途片段。</p><button class="primary-btn" id="emptyStart">开始记录</button></div></div>
+          </div>
+        </section>
+
+        <aside class="side-column">
+          <section class="panel">
+            <div class="panel-head"><div><div class="eyebrow">当前旅程</div><h2>川西环线</h2><div class="muted">康定 → 新都桥 → 塔公草原</div></div><div class="status-chip"><i class="live-dot"></i><span id="statusText">已完成</span></div></div>
+            <div class="stats"><div class="stat"><small>行驶距离</small><strong id="distance">182.6</strong><span>km</span></div><div class="stat"><small>总用时</small><strong id="duration">04:36</strong><span>h</span></div><div class="stat"><small>累计爬升</small><strong>2,184</strong><span>m</span></div><div class="stat"><small>沿途片段</small><strong>18</strong><span>个</span></div></div>
+            <svg class="elevation" viewBox="0 0 300 88" preserveAspectRatio="none" aria-label="海拔曲线"><path class="axis" d="M0 74 H300"/><path class="fill" d="M0 74 C20 70 30 57 44 62 S60 55 75 58 90 39 104 46 120 31 136 36 150 17 166 24 181 45 193 33 207 52 223 42 239 48 258 37 270 41 284 31 300 23 V88 H0 Z"/><path class="line" d="M0 74 C20 70 30 57 44 62 S60 55 75 58 90 39 104 46 120 31 136 36 150 17 166 24 181 45 193 33 207 52 223 42 239 48 258 37 270 41 284 31 300 23"/></svg>
+            <div class="elevation-labels"><span>康定 2,560m</span><span>折多山 4,298m</span><span>塔公 3,700m</span></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title"><strong>道路概况</strong><button data-toast="道路详情页即将开放">查看详情 →</button></div>
+            <div class="road-stat"><label>路面状况</label><b class="good">良好</b></div><div class="road-stat"><label>弯道密度</label><b class="warn">较多</b></div><div class="road-stat"><label>实时信号</label><b class="good">4G · 稳定</b></div><div class="road-stat"><label>最近补给</label><b>18.4 km</b></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-title"><strong>旅程节点</strong><button data-toast="节点编辑即将开放">管理 →</button></div>
+            <div class="timeline"><div class="timeline-item"><div class="timeline-dot"></div><div><strong>康定 · 出发</strong><small>09:12 · 海拔 2,560m</small></div></div><div class="timeline-item"><div class="timeline-dot"></div><div><strong>折多山口 · 经过</strong><small>11:46 · 海拔 4,298m</small></div></div><div class="timeline-item"><div class="timeline-dot green"></div><div><strong>塔公草原 · 抵达</strong><small>13:48 · 18 个旅途片段</small></div></div></div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="panel" style="margin-top:18px;">
+        <div class="section-title"><strong>最近的路线</strong><button data-toast="路线库已打开">查看全部 →</button></div>
+        <div class="route-list"><div class="route-row selected"><div class="route-thumb"></div><div><strong>川西环线</strong><small>182.6 km · 4 小时 36 分 · 18 个片段</small></div><div class="arrow">›</div></div><div class="route-row"><div class="route-thumb" style="background:linear-gradient(145deg,#8c8374,#29383a)"></div><div><strong>大理环海</strong><small>96.2 km · 2 小时 18 分 · 12 个片段</small></div><div class="arrow">›</div></div><div class="route-row"><div class="route-thumb" style="background:linear-gradient(145deg,#6d8c8b,#273639)"></div><div><strong>安吉竹海</strong><small>64.8 km · 1 小时 52 分 · 9 个片段</small></div><div class="arrow">›</div></div></div>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => Array.from(document.querySelectorAll(s));
+    const toast = (message) => { const el = $('#toast'); el.textContent = message; el.classList.add('show'); clearTimeout(window.toastTimer); window.toastTimer = setTimeout(() => el.classList.remove('show'), 2200); };
+
+    let recording = false;
+    let seconds = 0;
+    let distance = 182.6;
+    let timer;
+    const formatTime = (s) => `${String(Math.floor(s / 3600)).padStart(2,'0')}:${String(Math.floor((s % 3600) / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`;
+    const setRecording = (next) => {
+      recording = next;
+      const btn = $('#recordBtn');
+      btn.textContent = recording ? '结束记录' : '开始记录';
+      btn.classList.toggle('recording', recording);
+      $('#statusText').textContent = recording ? '正在记录' : '已完成';
+      $('#mapCaptionTitle').textContent = recording ? '正在记录路线' : '路线已完整记录';
+      $('#mapCaptionSub').textContent = recording ? 'GPS 已连接 · 每 3 秒保存一次' : '川西环线 · 2026 年 09 月 06 日';
+      $('.status-chip').classList.toggle('recording-pulse', recording);
+      if (recording) {
+        $('#emptyState').classList.remove('show');
+        $('#routeDone').style.strokeDashoffset = '680';
+        timer = setInterval(() => { seconds++; distance += .004; $('#duration').textContent = formatTime(seconds).slice(0,5); $('#distance').textContent = distance.toFixed(1); $('#routeDone').style.strokeDashoffset = String(Math.max(0, 680 - (seconds % 32) * 21)); }, 1000);
+        toast('已开始记录，路迹会持续保存');
+      } else { clearInterval(timer); $('#routeDone').style.strokeDashoffset = '0'; toast('本段路线已保存'); }
+    };
+    $('#recordBtn').addEventListener('click', () => setRecording(!recording));
+    $('#emptyStart').addEventListener('click', () => setRecording(true));
+
+    const mapTab = $('#mapTab'); const roadTab = $('#roadTab'); const roadView = $('#roadView');
+    const setView = (mode) => { const road = mode === 'road'; mapTab.classList.toggle('active', !road); roadTab.classList.toggle('active', road); mapTab.setAttribute('aria-selected', String(!road)); roadTab.setAttribute('aria-selected', String(road)); roadView.classList.toggle('visible', road); };
+    mapTab.addEventListener('click', () => setView('map')); roadTab.addEventListener('click', () => setView('road'));
+    let playing = false; let progress = 42;
+    $('#playBtn').addEventListener('click', () => { playing = !playing; $('#playBtn').textContent = playing ? 'Ⅱ' : '▶'; toast(playing ? '正在播放道路实景' : '实景播放已暂停'); });
+    setInterval(() => { if (playing) { progress = progress >= 99 ? 0 : progress + .18; $('#videoProgress').style.width = progress + '%'; } }, 1000);
+
+    $$('[data-toast]').forEach((el) => el.addEventListener('click', () => toast(el.dataset.toast)));
+    $$('.nav button').forEach((button) => button.addEventListener('click', () => { $$('.nav button').forEach(b => b.classList.remove('active')); button.classList.add('active'); if (button.dataset.page === 'record') { $('#emptyState').classList.add('show'); toast('准备开始新的记录'); } else if (button.dataset.page === 'overview') { $('#emptyState').classList.remove('show'); toast('已回到旅程总览'); } else { toast(button.querySelector('span:last-child').textContent + '功能即将开放'); } }));
+    $$('.route-row').forEach(row => row.addEventListener('click', () => { $$('.route-row').forEach(r => r.classList.remove('selected')); row.classList.add('selected'); const title = row.querySelector('strong').textContent; toast('已切换至“' + title + '”'); }));
+  </script>
+</body>
+</html>
